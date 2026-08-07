@@ -1,0 +1,13 @@
+export interface Testimonial {
+  stars: number; text: string; avatar: string; alt: string; name: string; company: string;
+}
+
+export const testimonials: Testimonial[] = [
+  {stars: 5,text: "\"Digital Developers completely transformed our online presence. The website they built is not only stunning but has increased our leads by 340% in just three months. Absolutely world-class work.\"",avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80",alt: "Sarah Mitchell",name: "Sarah Mitchell",company: "CEO, TechVentures Inc."},
+  {stars: 5,text: "\"The team at Digital Developers delivered our e-commerce platform ahead of schedule and it exceeded every expectation. Our online sales have tripled since launch. Highly recommend!\"",avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",alt: "James Rodriguez",name: "James Rodriguez",company: "Founder, LuxeShop"},
+  {stars: 5,text: "\"Professional, creative, and incredibly talented. They understood our vision perfectly and delivered a website that truly represents our brand. The attention to detail is remarkable.\"",avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80",alt: "Emily Chen",name: "Emily Chen",company: "Director, Nexus Corp"},
+  {stars: 5,text: "\"Working with Digital Developers was a game-changer for our clinic. The patient portal they built has streamlined our operations and our patients love the new booking experience.\"",avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80",alt: "Dr. Michael Park",name: "Dr. Michael Park",company: "Medical Director, MediCare"},
+  {stars: 5,text: "\"The AI-powered features they integrated into our platform have given us a massive competitive advantage. Their technical expertise and creative approach are unmatched in the industry.\"",avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&q=80",alt: "Priya Sharma",name: "Priya Sharma",company: "CTO, NeuralTech AI"},
+  {stars: 5,text: "\"From discovery to launch, the entire process was smooth and professional. They kept us informed at every step and the final product is absolutely beautiful. 10/10 would recommend.\"",avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80",alt: "David Thompson",name: "David Thompson",company: "COO, BuildRight"},
+  {stars: 5,text: "\"Our travel platform needed to feel inspiring and effortless — they delivered exactly that. Bookings are up 180% and the site wins praise from every client we share it with.\"",avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80",alt: "Amara Osei",name: "Amara Osei",company: "CEO, Wanderlust Travel"},
+];

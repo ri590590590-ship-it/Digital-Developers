@@ -1,0 +1,38 @@
+{
+  "name": "digital-developers-website",
+  "version": "13.0.0",
+  "private": true,
+  "description": "Digital Developers — luxury web agency website (matte-black × glowing amber). Next.js 14 + TypeScript + Tailwind + Three.js + GSAP + Supabase. Production source of the live v12 site.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "qa:scripts": "node scripts/check-scripts.js",
+    "qa:admin": "node scripts/check-admin.js",
+    "qa:jsonld": "node scripts/check-jsonld.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "gsap": "^3.12.5",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.10",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.169.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
