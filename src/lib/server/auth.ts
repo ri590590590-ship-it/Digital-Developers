@@ -36,19 +36,28 @@ export async function getServerSession(): Promise<AuthUser | null> {
     }
 
     const { data: userData, error: userError } = await client.auth.getUser(accessToken);
-    if (userError || !userData.user) {
-      return null;
-    }
+  if (userError || !userData.user) {
+    return null;
+  }
 
-    const { data: profileData, error: profileError } = await client
-      .from('profiles')
-      .select('role, status')
-      .eq('id', userData.user.id)
-      .maybeSingle();
+  const { data: profileData, error: profileError } = await client
+    .from('profiles')
+    .select('role, status')
+    .eq('id', userData.user.id)
+    .maybeSingle();
 
-    if (profileError) {
-      return null;
-    }
+  if (profileError) {
+    console.error('[Auth] Profile lookup error:', profileError);
+    return null;
+  }
+
+  return {
+    id: userData.user.id,
+    email: userData.user.email || '',
+    role: profileData?.role,
+    status: profileData?.status,
+  };
+}
 
     return {
       id: userData.user.id,
