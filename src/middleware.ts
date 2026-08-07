@@ -15,7 +15,11 @@ export function middleware(req: NextRequest) {
   res.headers.set('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
 
   if (pathname.startsWith(ADMIN_PATH_PREFIX) && !PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    const authCookie = req.cookies.get('sb-access-token');
+    const authCookie = req.cookies.getAll().find((cookie) => {
+      const name = cookie.name.toLowerCase();
+      return name.includes('auth-token') && !name.includes('code-verifier');
+    });
+
     if (!authCookie) {
       const loginUrl = new URL('/login', req.url);
       return NextResponse.redirect(loginUrl);

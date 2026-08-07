@@ -83,34 +83,49 @@ function loadProfileAndApp(){
 }
 
 function denyAccess(message){
-  sb.auth.signOut();
+  if (sb && sb.auth && typeof sb.auth.signOut === 'function') {
+    sb.auth.signOut();
+  }
   session = null;
   showAuth();
   showAuthError(message);
 }
 
 /* ---------- Auth UI ---------- */
-function showAuth(){ $('auth-screen').classList.remove('hidden'); $('app').classList.add('hidden'); }
-$('tab-login').addEventListener('click', function(){ switchAuth('login'); });
-$('tab-register').addEventListener('click', function(){ switchAuth('register'); });
-$('switch-to-register').addEventListener('click', function(e){ e.preventDefault(); switchAuth('register'); });
-function switchAuth(mode){
-  $('tab-login').classList.toggle('active', mode==='login');
-  $('tab-register').classList.toggle('active', mode==='register');
-  $('login-form').classList.toggle('hidden', mode!=='login');
-  $('register-form').classList.toggle('hidden', mode!=='register');
-  $('auth-error').classList.remove('show');
+function showAuth(){
+  var authScreen = $('auth-screen');
+  var app = $('app');
+  if (authScreen) authScreen.classList.remove('hidden');
+  if (app) app.classList.add('hidden');
 }
-function showAuthError(msg){ var el=$('auth-error'); el.textContent=msg; el.classList.add('show'); }
+if ($('tab-login')) $('tab-login').addEventListener('click', function(){ switchAuth('login'); });
+if ($('tab-register')) $('tab-register').addEventListener('click', function(){ switchAuth('register'); });
+if ($('switch-to-register')) $('switch-to-register').addEventListener('click', function(e){ e.preventDefault(); switchAuth('register'); });
+function switchAuth(mode){
+  var tabLogin = $('tab-login');
+  var tabRegister = $('tab-register');
+  var loginForm = $('login-form');
+  var registerForm = $('register-form');
+  var authError = $('auth-error');
+  if (tabLogin) tabLogin.classList.toggle('active', mode==='login');
+  if (tabRegister) tabRegister.classList.toggle('active', mode==='register');
+  if (loginForm) loginForm.classList.toggle('hidden', mode!=='login');
+  if (registerForm) registerForm.classList.toggle('hidden', mode!=='register');
+  if (authError) authError.classList.remove('show');
+}
+function showAuthError(msg){ var el=$('auth-error'); if (!el) return; el.textContent=msg; el.classList.add('show'); }
 
-$('login-form').addEventListener('submit', function(e){
-  e.preventDefault();
-  showAuthError(''); 
-  var email=$('login-email').value.trim(), pw=$('login-password').value;
-  sb.auth.signInWithPassword({email:email,password:pw}).then(function(res){
-    if (res.error) showAuthError(res.error.message || 'Login failed.');
+if ($('login-form')) {
+  $('login-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    showAuthError(''); 
+    var email=$('login-email').value.trim(), pw=$('login-password').value;
+    if (!sb || !sb.auth) { showAuthError('Supabase client is not initialized.'); return; }
+    sb.auth.signInWithPassword({email:email,password:pw}).then(function(res){
+      if (res.error) showAuthError(res.error.message || 'Login failed.');
+    });
   });
-});
+}
 
 $('register-form').addEventListener('submit', function(e){
   e.preventDefault();
@@ -315,7 +330,9 @@ function loadRequests(){
   if(!isSuper) return;
   db('admin_requests').select().then(function(res){
     var rows=(res.data||[]).filter(function(r){return r.status==='pending';});
-    var list=$('requests-list'); list.innerHTML='';
+    var list=$('requests-list') || $('requests-body');
+    if (!list) return;
+    list.innerHTML='';
     if(!rows.length){ list.innerHTML='<div class="empty-row" style="padding:30px;text-align:center;color:var(--muted)">No pending requests</div>'; return; }
     rows.forEach(function(r){
       var el=document.createElement('div'); el.className='req-card';
@@ -369,23 +386,26 @@ function saveSettings(){
 var modalTable='', modalId=null, modalFields={};
 function openModal(table, id){
   modalTable=table; modalId=id||null;
-  var titles={service:'Service',portfolio:'Project',blog:'Blog Post',testimonial:'Testimonial',team:'Team Member'};
-  $('modal-title').textContent = (id?'Edit ':'Add ')+titles[table];
+  var titles={services:'Service',portfolio:'Project',blogs:'Blog Post',testimonials:'Testimonial',team:'Team Member'};
+  var modalTitle = $('modal-title');
+  if (modalTitle) modalTitle.textContent = (id?'Edit ':'Add ')+(titles[table] || 'Item');
   var fields='';
-  if(table==='service'){
+  if(table==='services' || table==='service'){
     fields = field('icon','Icon (emoji or short text)','text','briefcase')+field('title','Title','text','')+field('desc','Description','textarea','')+field('sort','Order','number','0');
   } else if(table==='portfolio'){
     fields = field('title','Project Title','text','')+field('cat','Category','text','')+field('img','Image URL','url','')+field('desc','Description','textarea','');
-  } else if(table==='blog'){
+  } else if(table==='blogs' || table==='blog'){
     fields = field('title','Post Title','text','')+field('cat','Category','text','')+field('slug','Slug (URL)','text','')+field('img','Image URL','url','')+field('excerpt','Excerpt','textarea','')+field('date','Date','date','');
-  } else if(table==='testimonial'){
+  } else if(table==='testimonials' || table==='testimonial'){
     fields = field('name','Name','text','')+field('company','Company','text','')+field('rating','Rating (1-5)','number','5')+field('text','Testimonial','textarea','');
   } else if(table==='team'){
     fields = field('name','Name','text','')+field('role','Role','text','')+field('photo','Photo URL','url','')+field('bio','Bio','textarea','');
   }
-  $('modal-fields').innerHTML=fields;
+  var modalFieldsEl = $('modal-fields');
+  if (!modalFieldsEl) return;
+  modalFieldsEl.innerHTML=fields;
   modalFields={};
-  $('modal-fields').querySelectorAll('[data-field]').forEach(function(el){ modalFields[el.getAttribute('data-field')]=el; });
+  modalFieldsEl.querySelectorAll('[data-field]').forEach(function(el){ modalFields[el.getAttribute('data-field')]=el; });
   if(id){
     db(modalTable).select().then(function(res){
       var r=(res.data||[]).filter(function(x){return x.id==id;})[0];
@@ -393,7 +413,8 @@ function openModal(table, id){
       Object.keys(modalFields).forEach(function(k){ if(r[k]!=null) modalFields[k].value=r[k]; });
     });
   }
-  $('modal-backdrop').classList.add('show');
+  var modalBackdrop = $('modal-backdrop');
+  if (modalBackdrop) modalBackdrop.classList.add('show');
 }
 function field(name,label,type,placeholder){
   var ph=placeholder?' placeholder="'+placeholder+'"':'';
@@ -401,8 +422,8 @@ function field(name,label,type,placeholder){
   return '<div class="form-group"><label>'+label+'</label><input type="'+type+'" data-field="'+name+'"'+ph+'></div>';
 }
 function closeModal(){ $('modal-backdrop').classList.remove('show'); }
-$('modal-backdrop').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
-$('modal-form').addEventListener('submit', function(e){
+if ($('modal-backdrop')) $('modal-backdrop').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+if ($('modal-form')) $('modal-form').addEventListener('submit', function(e){
   e.preventDefault();
   var payload={};
   Object.keys(modalFields).forEach(function(k){ payload[k]=modalFields[k].value.trim(); });
@@ -413,11 +434,13 @@ function refreshCurrent(){ loadOverview(); if(currentView==='services')loadTable
 
 /* ---------- Uploads ---------- */
 var drop=$('upload-drop'), input=$('upload-input');
-drop.addEventListener('click', function(){ input.click(); });
-input.addEventListener('change', function(){ if(input.files.length) uploadFiles(input.files); });
-['dragover','dragenter'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('drag'); }); });
-['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('drag'); }); });
-drop.addEventListener('drop', function(e){ if(e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files); });
+if (drop && input) {
+  drop.addEventListener('click', function(){ input.click(); });
+  input.addEventListener('change', function(){ if(input.files.length) uploadFiles(input.files); });
+  ['dragover','dragenter'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('drag'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('drag'); }); });
+  drop.addEventListener('drop', function(e){ if(e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files); });
+}
 function uploadFiles(files){
   if(!sb){ toast('Connect Supabase to use uploads','error'); return; }
   var preview=$('upload-preview');

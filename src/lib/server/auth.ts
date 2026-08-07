@@ -21,7 +21,9 @@ function getSupabaseClient() {
 export async function getServerSession(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
-    const authCookies = cookieStore.getAll().filter((cookie) => cookie.name.includes('auth-token'));
+    const authCookies = cookieStore
+      .getAll()
+      .filter((cookie) => cookie.name.includes('auth-token') && !cookie.name.includes('code-verifier'));
     const accessToken = authCookies[0]?.value;
 
     if (!accessToken) {
