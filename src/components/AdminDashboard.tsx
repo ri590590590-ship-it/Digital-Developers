@@ -28,6 +28,16 @@ export default function AdminDashboard() {
       if (setup) setup.classList.remove("hidden");
     };
 
+    const runtimeConfig = {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+    };
+
+    const configScript = document.createElement("script");
+    configScript.type = "text/javascript";
+    configScript.textContent = `window.__DD_SUPABASE_CONFIG__ = ${JSON.stringify(runtimeConfig)};`;
+    document.body.appendChild(configScript);
+
     // The Supabase JS SDK is only needed on this route, so it's loaded here
     // instead of site-wide in the root layout (keeps every other page lighter).
     // admin.js expects window.supabase to already exist, so it must load first.

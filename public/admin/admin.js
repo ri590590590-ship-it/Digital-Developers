@@ -1,12 +1,13 @@
 
 'use strict';
 /* ============================================================
-   SUPABASE CONFIG — paste your project values here:
-   Find them at supabase.com → your project → Settings → API
+   SUPABASE CONFIG — loaded from the app runtime so the dashboard
+   can use your real project URL and anon key without editing this
+   static file manually.
    ============================================================ */
-var SUPABASE_CONFIG = {
-  url: '',      // e.g. 'https://xyzcompany.supabase.co'
-  anonKey: ''   // e.g. 'eyJhbGciOiJIUzI1NiIs...'
+var SUPABASE_CONFIG = (window && window.__DD_SUPABASE_CONFIG__) || {
+  url: '',
+  anonKey: ''
 };
 
 /* ---------- Tiny in-memory fallback (demo mode) ----------
@@ -118,18 +119,54 @@ $('register-form').addEventListener('submit', function(e){
   sb.auth.signUp({email:email,password:pw}).then(function(res){
     if (res.error) { showAuthError(res.error.message || 'Registration failed.'); return; }
     var uid = res.data.user ? res.data.user.id : null;
-    var role = 'pending';
-    if (uid) {
-      sb.from('profiles').insert({id:uid,email:email,full_name:name,role:role,status:'pending'}).then(function(){
-        sb.from('admin_requests').insert({user_id:uid,email:email,full_name:name,reason:reason,status:'pending'}).then(function(){
-          showAuthError(''); toast('Access request submitted! The Super Admin will review it.','success');
-          switchAuth('login');
-          $('register-form').reset();
-        });
-      });
-    } else {
+    if (!uid) {
       toast('Check your email to confirm your account, then sign in.','success');
+      return;
     }
+
+    sb.from('profiles').select('id', { count: 'exact', head: true }).then(function({ count, error }){
+      var profileRole = 'pending';
+      var profileStatus = 'pending';
+      if (!error && (count === 0 || count === null)) {
+        profileRole = 'super_admin';
+        profileStatus = 'active';
+      }
+
+      return sb.from('profiles').insert({
+        id: uid,
+        email: email,
+        full_name: name,
+        role: profileRole,
+        status: profileStatus
+      }).then(function(){
+        if (profileRole === 'pending') {
+          return sb.from('admin_requests').insert({
+            user_id: uid,
+            email: email,
+            full_name: name,
+            reason: reason,
+            status: 'pending'
+          });
+        }
+        return { error: null };
+      });
+    }).then(function(result){
+      if (result && result.error) {
+        throw result.error;
+      }
+      if (sb && sb.auth && typeof sb.auth.signOut === 'function') {
+        return sb.auth.signOut();
+      }
+      return null;
+    }).then(function(){
+      showAuthError('');
+      toast('Registration complete. You can sign in now.','success');
+      switchAuth('login');
+      $('register-form').reset();
+    }).catch(function(err){
+      console.error('[Admin] register failed:', err);
+      showAuthError(err && err.message ? err.message : 'Registration failed.');
+    });
   });
 });
 

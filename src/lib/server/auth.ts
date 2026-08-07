@@ -21,7 +21,8 @@ function getSupabaseClient() {
 export async function getServerSession(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value;
+    const authCookies = cookieStore.getAll().filter((cookie) => cookie.name.includes('auth-token'));
+    const accessToken = authCookies[0]?.value;
 
     if (!accessToken) {
       return null;
@@ -32,15 +33,25 @@ export async function getServerSession(): Promise<AuthUser | null> {
       return null;
     }
 
-    const { data, error } = await client.auth.getUser(accessToken);
-    if (error || !data.user) {
+    const { data: userData, error: userError } = await client.auth.getUser(accessToken);
+    if (userError || !userData.user) {
+      return null;
+    }
+
+    const { data: profileData, error: profileError } = await client
+      .from('profiles')
+      .select('role, status')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+
+    if (profileError) {
       return null;
     }
 
     return {
-      id: data.user.id,
-      email: data.user.email || '',
-      role: data.user.user_metadata?.role || 'user',
+      id: userData.user.id,
+      email: userData.user.email || '',
+      role: profileData?.role || 'pending',
     };
   } catch {
     return null;
