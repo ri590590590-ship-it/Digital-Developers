@@ -55,6 +55,17 @@ export async function getServerSession(): Promise<AuthUser | null> {
       email: userData.user.email || '',
       role: profileData?.role || 'pending',
     };
+  } catch (error) {
+    console.error('[Auth] Session error:', error);
+    return null;
+  }
+}
+
+    return {
+      id: userData.user.id,
+      email: userData.user.email || '',
+      role: profileData?.role || 'pending',
+    };
   } catch {
     return null;
   }
