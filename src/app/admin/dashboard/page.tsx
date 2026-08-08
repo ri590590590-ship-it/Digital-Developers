@@ -5,6 +5,8 @@ import { buildMetadata } from '@/lib/seo';
 import { requireAdminSession } from '@/lib/server/auth';
 import AdminDashboard from '@/components/AdminDashboard';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = buildMetadata({
   title: 'Admin Dashboard',
   description: `Secure admin dashboard for ${SITE.name}.`,
@@ -18,9 +20,5 @@ export default async function AdminDashboardPage() {
     redirect('/login');
   }
 
-  return (
-    <div id="admin-root">
-      <AdminDashboard />
-    </div>
-  );
+  return <AdminDashboard />;
 }
