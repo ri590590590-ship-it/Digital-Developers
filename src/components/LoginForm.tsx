@@ -4,45 +4,100 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
 export default function LoginForm() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     setError('');
-
-    if (!email || !password) {
-      setError('Please enter both email and password.');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const { error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      console.log('[LOGIN] Starting login...');
+      console.log(
+        '[LOGIN] Supabase URL configured:',
+        Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL)
+      );
+      console.log(
+        '[LOGIN] Supabase anon key configured:',
+        Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      );
 
-      if (signInError) {
-        setError(signInError.message || 'Login failed.');
+      if (!email || !password) {
+        setError('Please enter both email and password.');
         return;
       }
 
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+      console.log('[LOGIN] Supabase response:', {
+        success: !signInError,
+        hasUser: Boolean(data?.user),
+        hasSession: Boolean(data?.session),
+        error: signInError?.message || null,
+      });
+
+      if (signInError) {
+        setError(`Login failed: ${signInError.message}`);
+        return;
+      }
+
+      if (!data.session || !data.user) {
+        setError(
+          'Supabase login succeeded, but no session was returned. Check browser session configuration.'
+        );
+        return;
+      }
+
+      console.log('[LOGIN] User authenticated:', data.user.id);
+      console.log('[LOGIN] Session received successfully.');
+
+      const {
+        data: sessionCheck,
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      console.log('[LOGIN] Browser session check:', {
+        hasSession: Boolean(sessionCheck.session),
+        error: sessionError?.message || null,
+      });
+
+      if (sessionError || !sessionCheck.session) {
+        setError(
+          'Login succeeded but the browser session was not saved. Check the browser cookies/session configuration.'
+        );
+        return;
+      }
+
+      console.log('[LOGIN] Redirecting to dashboard...');
+
       router.push('/admin/dashboard');
       router.refresh();
-    } catch (error) {
-      console.error('[Login] Error:', error);
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      console.error('[LOGIN] Unexpected error:', err);
+
+      setError(
+        err instanceof Error
+          ? `Unexpected error: ${err.message}`
+          : 'An unexpected error occurred.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -120,6 +175,8 @@ export default function LoginForm() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              placeholder="admin@example.com"
+              required
               style={{
                 padding: '0.9rem 1rem',
                 borderRadius: 12,
@@ -127,9 +184,6 @@ export default function LoginForm() {
                 background: '#111214',
                 color: '#f5f3ee',
               }}
-              placeholder="admin@example.com"
-              autoComplete="email"
-              required
             />
           </label>
 
@@ -146,6 +200,8 @@ export default function LoginForm() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              required
               style={{
                 padding: '0.9rem 1rem',
                 borderRadius: 12,
@@ -153,13 +209,10 @@ export default function LoginForm() {
                 background: '#111214',
                 color: '#f5f3ee',
               }}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
             />
           </label>
 
-          {error ? (
+          {error && (
             <div
               style={{
                 background: 'rgba(220,38,38,0.12)',
@@ -171,7 +224,7 @@ export default function LoginForm() {
             >
               {error}
             </div>
-          ) : null}
+          )}
 
           <button
             type="submit"
@@ -179,7 +232,6 @@ export default function LoginForm() {
             className="btn btn-primary"
             style={{
               justifyContent: 'center',
-              opacity: isLoading ? 0.7 : 1,
             }}
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
