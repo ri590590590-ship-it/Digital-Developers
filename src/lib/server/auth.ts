@@ -1,5 +1,5 @@
-import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
+
+import { createClient } from '@/lib/supabase/server';
 
 export interface AuthUser {
   id: string;
@@ -8,53 +8,24 @@ export interface AuthUser {
   status?: string;
 }
 
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    console.error('[Auth] Supabase environment variables are missing');
-    return null;
-  }
-
-  return createClient(url, anonKey);
-}
-
 export async function getServerSession(): Promise<AuthUser | null> {
   try {
-    const cookieStore = cookies();
+    const supabase = await createClient();
 
-    const authCookies = cookieStore
-      .getAll()
-      .filter(
-        (cookie) =>
-          cookie.name.includes('auth-token') &&
-          !cookie.name.includes('code-verifier')
-      );
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    const accessToken = authCookies[0]?.value;
-
-    if (!accessToken) {
+    if (userError || !user) {
+      console.error('[Auth] User lookup failed:', userError?.message);
       return null;
     }
 
-    const client = getSupabaseClient();
-
-    if (!client) {
-      return null;
-    }
-
-    const { data: userData, error: userError } =
-      await client.auth.getUser(accessToken);
-
-    if (userError || !userData?.user) {
-      return null;
-    }
-
-    const { data: profileData, error: profileError } = await client
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('role, status')
-      .eq('id', userData.user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (profileError) {
@@ -63,8 +34,8 @@ export async function getServerSession(): Promise<AuthUser | null> {
     }
 
     return {
-      id: userData.user.id,
-      email: userData.user.email || '',
+      id: user.id,
+      email: user.email || '',
       role: profileData?.role || 'pending',
       status: profileData?.status,
     };
