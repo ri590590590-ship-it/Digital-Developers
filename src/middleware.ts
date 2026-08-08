@@ -1,46 +1,63 @@
-import { NextRequest, NextResponse } from 'next/server';
 
-const ADMIN_PATH_PREFIX = '/admin';
-const PUBLIC_PATHS = ['/login', '/api/contact'];
+import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  const res = NextResponse.next();
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  // Refresh/validate the Supabase session.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
 
   // Security headers
-  res.headers.set('X-Robots-Tag', 'noindex, nofollow');
-  res.headers.set('X-Frame-Options', 'DENY');
-  res.headers.set(
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set(
     'Referrer-Policy',
     'strict-origin-when-cross-origin'
   );
-  res.headers.set('X-Content-Type-Options', 'nosniff');
-  res.headers.set(
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set(
     'Permissions-Policy',
     'geolocation=(), camera=(), microphone=()'
   );
 
-  // Protect admin routes
-  if (
-    pathname.startsWith(ADMIN_PATH_PREFIX) &&
-    !PUBLIC_PATHS.some((p) => pathname.startsWith(p))
-  ) {
-    const authCookies = req.cookies.getAll().filter((cookie) => {
-      const name = cookie.name.toLowerCase();
+  // Protect admin routes.
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('redirect', pathname);
 
-      return (
-        name.includes('auth-token') &&
-        !name.includes('code-verifier')
-      );
-    });
-
-    if (authCookies.length === 0) {
-      const loginUrl = new URL('/login', req.url);
       return NextResponse.redirect(loginUrl);
     }
   }
 
-  return res;
+  return response;
 }
 
 export const config = {
