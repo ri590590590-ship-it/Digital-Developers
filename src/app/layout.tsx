@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
+  keywords: ['web development', 'website design', 'e-commerce', 'Pakistan', 'digital agency', 'custom web apps', 'Lahore web development'],
   icons: { icon: '/images/favicon.jpg' },
   openGraph: {
     siteName: SITE.name,
@@ -23,6 +24,14 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#0a0a0a',
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Digital Developers',
+  url: SITE_URL,
+  description: SITE.description,
 };
 
 export default function RootLayout({
@@ -38,6 +47,10 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body>
